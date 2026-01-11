@@ -12,7 +12,7 @@ trait NodeSelectorTrait
     /**
      * @return Node[]|Node|null
      */
-    public function find(string $selector, int $idx = null, bool $lowercase = false)
+    public function find(string $selector, ?int $idx = null, bool $lowercase = false)
     {
         $selectors = $this->parseSelector($selector);
         if (empty($selectors)) {
@@ -64,22 +64,14 @@ trait NodeSelectorTrait
         return $found[$idx] ?? null;
     }
 
-    /**
-     * @param string $selector
-     * @param bool $lowercase
-     * @return Node|null
-     */
-    public function findOne(string $selector, bool $lowercase = false)
+    public function findOne(string $selector, bool $lowercase = false): ?Node
     {
         return $this->find($selector, 0, $lowercase);
     }
 
-    /**
-     * @return void
-     */
-    protected function seek(array $selector, array &$matches, string $combinator, bool $lowercase)
+    protected function seek(array $selector, array &$matches, string $combinator, bool $lowercase): void
     {
-        list($tag, $id, $classes, $attributeSelectors) = $selector;
+        [$tag, $id, $classes, $attributeSelectors] = $selector;
         $candidateNodes = $this->getCandidateNodes($combinator);
 
         foreach ($candidateNodes as $candidateNode) {
@@ -166,7 +158,7 @@ trait NodeSelectorTrait
 
         if (! empty($attributeSelectors)) {
             foreach ($attributeSelectors as $attrSelector) {
-                list($attrName, $attrOperator, $attrValue, $inverted, $caseSensitivity) = $attrSelector;
+                [$attrName, $attrOperator, $attrValue, $inverted, $caseSensitivity] = $attrSelector;
                 $nodeAttrValue = $node->attributes[$attrName] ?? null;
 
                 $singleMatch = $this->matchAttribute($attrOperator, $attrValue, $nodeAttrValue, $caseSensitivity);

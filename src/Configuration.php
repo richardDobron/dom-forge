@@ -107,7 +107,7 @@ final class Configuration
     /**
      * @return string[]|null
      */
-    public function getSelfClosingTags()
+    public function getSelfClosingTags(): ?array
     {
         return $this->selfClosingTags;
     }

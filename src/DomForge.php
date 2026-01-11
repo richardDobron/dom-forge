@@ -18,31 +18,31 @@ class DomForge
     use DomFinderTrait;
 
     // Node types
-    const TYPE_ELEMENT = 1;
-    const TYPE_COMMENT = 2;
-    const TYPE_TEXT = 3;
-    const TYPE_ENDTAG = 4;
-    const TYPE_ROOT = 5;
-    const TYPE_UNKNOWN = 6;
+    public const TYPE_ELEMENT = 1;
+    public const TYPE_COMMENT = 2;
+    public const TYPE_TEXT = 3;
+    public const TYPE_ENDTAG = 4;
+    public const TYPE_ROOT = 5;
+    public const TYPE_UNKNOWN = 6;
 
     // Quote types
-    const QUOTE_DOUBLE = 0;
-    const QUOTE_SINGLE = 1;
-    const QUOTE_NO = 3;
+    public const QUOTE_DOUBLE = 0;
+    public const QUOTE_SINGLE = 1;
+    public const QUOTE_NO = 3;
 
     // Info array keys
-    const INFO_BEGIN = 0;
-    const INFO_END = 1;
-    const INFO_QUOTE = 2;
-    const INFO_SPACE = 3;
-    const INFO_TEXT = 4;
-    const INFO_INNER = 5;
-    const INFO_OUTER = 6;
-    const INFO_ENDSPACE = 7;
+    public const INFO_BEGIN = 0;
+    public const INFO_END = 1;
+    public const INFO_QUOTE = 2;
+    public const INFO_SPACE = 3;
+    public const INFO_TEXT = 4;
+    public const INFO_INNER = 5;
+    public const INFO_OUTER = 6;
+    public const INFO_ENDSPACE = 7;
 
-    const WHITESPACE_CHARS = " \t\r\n";
+    protected const WHITESPACE_CHARS = " \t\r\n";
 
-    const BLOCK_TAGS = [
+    protected const BLOCK_TAGS = [
         'body', 'div', 'form', 'root', 'span', 'table',
     ];
 
@@ -102,7 +102,7 @@ class DomForge
         'tr' => ['td', 'th', 'tr'],
     ];
 
-    public function __construct(Configuration $configuration = null)
+    public function __construct(?Configuration $configuration = null)
     {
         $this->configuration = $configuration ?? new Configuration();
 
@@ -111,7 +111,7 @@ class DomForge
         }
     }
 
-    public static function fromHtml(string $html, Configuration $configuration = null): self
+    public static function fromHtml(string $html, ?Configuration $configuration = null): self
     {
         if ($configuration !== null && $configuration->getSelfClosingTags() !== null) {
             self::registerSelfClosingTags($configuration->getSelfClosingTags());
@@ -123,7 +123,7 @@ class DomForge
         return $dom;
     }
 
-    public static function fromFile(string $filepath, Configuration $configuration = null)
+    public static function fromFile(string $filepath, ?Configuration $configuration = null)
     {
         if (! is_file($filepath) || ! is_readable($filepath)) {
             return false;
@@ -185,7 +185,7 @@ class DomForge
      * @param array<string, string|bool> $attributes Element attributes
      * @return Node
      */
-    public function createElement(string $tag, string $content = null, array $attributes = []): Node
+    public function createElement(string $tag, ?string $content = null, array $attributes = []): Node
     {
         $node = new Node($this);
         $node->nodetype = self::TYPE_ELEMENT;
@@ -233,10 +233,7 @@ class DomForge
         return $node;
     }
 
-    /**
-     * @return void
-     */
-    public function clear()
+    public function clear(): void
     {
         foreach ($this->nodes as $node) {
             $node->clear();
@@ -248,19 +245,12 @@ class DomForge
         $this->nodes = [];
     }
 
-    /**
-     * @param callable $callback
-     * @return void
-     */
-    public function setCallback(callable $callback)
+    public function setCallback(callable $callback): void
     {
         $this->callback = $callback;
     }
 
-    /**
-     * @return void
-     */
-    public function removeCallback()
+    public function removeCallback(): void
     {
         $this->callback = null;
     }
@@ -282,13 +272,9 @@ class DomForge
         );
     }
 
-    /**
-     * @param string $str
-     * @return void
-     */
     protected function prepare(
         string $str
-    ) {
+    ): void {
         $this->clear();
 
         $this->html = trim($str);
@@ -474,10 +460,7 @@ class DomForge
         return true;
     }
 
-    /**
-     * @return void
-     */
-    protected function traverseToMatchingParent(string $tagLower)
+    protected function traverseToMatchingParent(string $tagLower): void
     {
         while ($this->currentParent->parent && strtolower($this->currentParent->tag) !== $tagLower) {
             $this->currentParent = $this->currentParent->parent;
@@ -646,13 +629,7 @@ class DomForge
         return true;
     }
 
-    /**
-     * @param Node $node
-     * @param string $name
-     * @param array $spacing
-     * @return void
-     */
-    protected function parseAttribute(Node $node, string $name, array &$spacing)
+    protected function parseAttribute(Node $node, string $name, array &$spacing): void
     {
         $isDuplicate = isset($node->attributes[$name]);
 
@@ -692,12 +669,7 @@ class DomForge
         }
     }
 
-    /**
-     * @param Node $node
-     * @param bool $isChild
-     * @return void
-     */
-    protected function linkNodes(Node $node, bool $isChild)
+    protected function linkNodes(Node $node, bool $isChild): void
     {
         $node->parent = $this->currentParent;
         $this->currentParent->nodes[] = $node;
@@ -717,20 +689,13 @@ class DomForge
         return true;
     }
 
-    /**
-     * @param string $chars
-     * @return void
-     */
-    protected function skip(string $chars)
+    protected function skip(string $chars): void
     {
         $this->position += strspn($this->html, $chars, $this->position);
         $this->currentChar = ($this->position < $this->size) ? $this->html[$this->position] : null;
     }
 
-    /**
-     * @return void
-     */
-    protected function advance()
+    protected function advance(): void
     {
         $this->currentChar = (++$this->position < $this->size) ? $this->html[$this->position] : null;
     }
@@ -781,12 +746,7 @@ class DomForge
         return substr($this->html, $startPos, $foundPos - $startPos);
     }
 
-    /**
-     * @param string $pattern
-     * @param bool $removeTag
-     * @return void
-     */
-    protected function removeNoise(string $pattern, bool $removeTag = false)
+    protected function removeNoise(string $pattern, bool $removeTag = false): void
     {
         $count = preg_match_all($pattern, $this->html, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 

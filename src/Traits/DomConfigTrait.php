@@ -13,11 +13,7 @@ trait DomConfigTrait
         'param', 'source', 'track', 'wbr',
     ];
 
-    /**
-     * @param string $tag
-     * @return void
-     */
-    public static function addSelfClosingTag(string $tag)
+    public static function addSelfClosingTag(string $tag): void
     {
         $tagLower = strtolower($tag);
         if (! in_array($tagLower, self::$selfClosingTags, true)) {
@@ -25,11 +21,7 @@ trait DomConfigTrait
         }
     }
 
-    /**
-     * @param string $tag
-     * @return void
-     */
-    public static function removeSelfClosingTag(string $tag)
+    public static function removeSelfClosingTag(string $tag): void
     {
         $tagLower = strtolower($tag);
         $index = array_search($tagLower, self::$selfClosingTags, true);
@@ -40,9 +32,8 @@ trait DomConfigTrait
 
     /**
      * @param string[] $tags
-     * @return void
      */
-    public static function registerSelfClosingTags(array $tags)
+    public static function registerSelfClosingTags(array $tags): void
     {
         self::$selfClosingTags = array_unique(
             array_merge(self::$selfClosingTags, array_map('strtolower', array_values($tags)))
@@ -57,10 +48,7 @@ trait DomConfigTrait
         return self::$selfClosingTags;
     }
 
-    /**
-     * @return void
-     */
-    public static function resetSelfClosingTags()
+    public static function resetSelfClosingTags(): void
     {
         self::$selfClosingTags = [
             'area', 'base', 'br', 'col', 'embed',

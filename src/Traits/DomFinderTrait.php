@@ -11,26 +11,17 @@ trait DomFinderTrait
     /**
      * @return Node[]|Node|null
      */
-    public function find(string $selector, int $idx = null, bool $lowercase = false)
+    public function find(string $selector, ?int $idx = null, bool $lowercase = false)
     {
         return $this->root ? $this->root->find($selector, $idx, $lowercase) : [];
     }
 
-    /**
-     * @param string $selector
-     * @param bool $lowercase
-     * @return Node|null
-     */
-    public function findOne(string $selector, bool $lowercase = false)
+    public function findOne(string $selector, bool $lowercase = false): ?Node
     {
         return $this->root ? $this->root->findOne($selector, $lowercase) : null;
     }
 
-    /**
-     * @param string $id
-     * @return Node[]|Node|null
-     */
-    public function getElementById(string $id)
+    public function getElementById(string $id): ?Node
     {
         return $this->findOne("#$id");
     }
@@ -38,16 +29,12 @@ trait DomFinderTrait
     /**
      * @return Node[]|Node|null
      */
-    public function getElementsById(string $id, int $idx = null)
+    public function getElementsById(string $id, ?int $idx = null)
     {
         return $this->find("#$id", $idx);
     }
 
-    /**
-     * @param string $name
-     * @return Node|null
-     */
-    public function getElementByTagName(string $name)
+    public function getElementByTagName(string $name): ?Node
     {
         return $this->findOne($name);
     }
@@ -55,7 +42,7 @@ trait DomFinderTrait
     /**
      * @return Node[]|Node|null
      */
-    public function getElementsByTagName(string $name, int $idx = null)
+    public function getElementsByTagName(string $name, ?int $idx = null)
     {
         return $this->find($name, $idx);
     }

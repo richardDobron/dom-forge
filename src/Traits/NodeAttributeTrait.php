@@ -25,11 +25,9 @@ trait NodeAttributeTrait
     }
 
     /**
-     * @param string $name
      * @param mixed $value
-     * @return void
      */
-    public function setAttribute(string $name, $value)
+    public function setAttribute(string $name, $value): void
     {
         $this->__set($name, $value);
     }
@@ -39,11 +37,7 @@ trait NodeAttributeTrait
         return array_key_exists($name, $this->attributes);
     }
 
-    /**
-     * @param string $name
-     * @return void
-     */
-    public function removeAttribute(string $name)
+    public function removeAttribute(string $name): void
     {
         $this->__unset($name);
     }

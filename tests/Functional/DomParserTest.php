@@ -28,7 +28,7 @@ class DomParserTest extends TestCase
         return DomForge::fromHtml($str, $configuration);
     }
 
-    public function testConfiguration()
+    public function testConfiguration(): void
     {
         $configuration = Configuration::create()
             ->setLowercase(false)
@@ -114,8 +114,8 @@ class DomParserTest extends TestCase
         $dom = $this->parse($html);
 
         $div = $dom->find('div', 0);
-        $this->assertContains('<p>Hello <strong>World</strong></p>', $div->innerHtml());
-        $this->assertContains('<div class="box">', $div->outerHtml());
+        $this->assertStringContainsString('<p>Hello <strong>World</strong></p>', $div->innerHtml());
+        $this->assertStringContainsString('<div class="box">', $div->outerHtml());
     }
 
     public function testTextContent()
@@ -124,8 +124,8 @@ class DomParserTest extends TestCase
         $dom = $this->parse($html);
 
         $textContent = $dom->root->textContent();
-        $this->assertContains('Hello', $textContent);
-        $this->assertContains('World', $textContent);
+        $this->assertStringContainsString('Hello', $textContent);
+        $this->assertStringContainsString('World', $textContent);
     }
 
     public function testNodeTypes()
@@ -186,7 +186,6 @@ class DomParserTest extends TestCase
         $this->assertInstanceOf(DomForge::class, $dom);
         $this->assertNotNull($dom->root);
 
-        // Parser should handle this gracefully
         $iframe = $dom->find('iframe', 0);
         $this->assertNotNull($iframe);
     }
@@ -307,8 +306,8 @@ class DomParserTest extends TestCase
         $this->assertInstanceOf(DomForge::class, $dom);
         $div = $dom->find('div', 0);
         $this->assertNotNull($div);
-        $this->assertContains('日本語', $div->innerHtml());
-        $this->assertContains('🎉', $div->innerHtml());
+        $this->assertStringContainsString('日本語', $div->innerHtml());
+        $this->assertStringContainsString('🎉', $div->innerHtml());
     }
 
     public function testDeeplyNestedHtml()
@@ -319,7 +318,7 @@ class DomParserTest extends TestCase
         $this->assertInstanceOf(DomForge::class, $dom);
         $p = $dom->find('p', 0);
         $this->assertNotNull($p);
-        $this->assertContains('Deep content', $p->innerHtml());
+        $this->assertStringContainsString('Deep content', $p->innerHtml());
     }
 
     public function testMultipleRootElements()
@@ -396,7 +395,6 @@ class DomParserTest extends TestCase
 
     public function testFbtSelfClosingTags()
     {
-        // fbt tags are not default - they must be registered by fbt library
         DomForge::registerSelfClosingTags([
             'fbt:enum',
             'fbt:pronoun',
@@ -406,10 +404,9 @@ class DomParserTest extends TestCase
 
         $this->assertTrue(DomForge::isSelfClosingTag('fbt:enum'));
         $this->assertTrue(DomForge::isSelfClosingTag('fbt:pronoun'));
-        $this->assertTrue(DomForge::isSelfClosingTag('fbt:sameParam')); // converted to lowercase: fbt:sameparam
+        $this->assertTrue(DomForge::isSelfClosingTag('fbt:sameParam'));
         $this->assertTrue(DomForge::isSelfClosingTag('fbt:same-param'));
 
-        // Reset for other tests
         DomForge::resetSelfClosingTags();
     }
 
@@ -434,7 +431,6 @@ class DomParserTest extends TestCase
             $callCount++;
         });
 
-        // Trigger callback by getting outerHtml
         $dom->save();
 
         $this->assertGreaterThan(0, $callCount);
@@ -483,8 +479,8 @@ class DomParserTest extends TestCase
         $dom = $this->parse($html);
 
         $output = $dom->save();
-        $this->assertContains('<div>', $output);
-        $this->assertContains('<p>Content</p>', $output);
+        $this->assertStringContainsString('<div>', $output);
+        $this->assertStringContainsString('<p>Content</p>', $output);
     }
 
     public function testClearMethod()
@@ -526,41 +522,34 @@ class DomParserTest extends TestCase
         $html = '<div><p>First</p><span>Second</span><p>Third</p></div>';
         $dom = $this->parse($html);
 
-        // Adjacent sibling
         $adjacent = $dom->find('p + span');
         $this->assertCount(1, $adjacent);
 
-        // General sibling
         $general = $dom->find('p ~ p');
         $this->assertCount(1, $general);
     }
 
     public function testAddSelfClosingTag()
     {
-        // Add a custom self-closing tag
         DomForge::addSelfClosingTag('custom-tag');
 
         $dom = new DomForge();
         $this->assertTrue($dom->isSelfClosingTag('custom-tag'));
-        $this->assertTrue($dom->isSelfClosingTag('CUSTOM-TAG')); // Case insensitive
+        $this->assertTrue($dom->isSelfClosingTag('CUSTOM-TAG'));
 
-        // Clean up
         DomForge::removeSelfClosingTag('custom-tag');
     }
 
     public function testRemoveSelfClosingTag()
     {
-        // Verify br is a self-closing tag by default
         $dom1 = new DomForge();
         $this->assertTrue($dom1->isSelfClosingTag('br'));
 
-        // Remove it
         DomForge::removeSelfClosingTag('br');
 
         $dom2 = new DomForge();
         $this->assertFalse($dom2->isSelfClosingTag('br'));
 
-        // Restore
         DomForge::addSelfClosingTag('br');
     }
 
@@ -583,7 +572,7 @@ class DomParserTest extends TestCase
     {
         $tags = DomForge::getSelfClosingTags();
 
-        $this->assertTrue(is_array($tags));
+        $this->assertIsArray($tags);
         $this->assertContains('br', $tags);
         $this->assertContains('img', $tags);
         $this->assertContains('input', $tags);
@@ -591,7 +580,6 @@ class DomParserTest extends TestCase
 
     public function testResetSelfClosingTags()
     {
-        // Add a custom tag
         DomForge::addSelfClosingTag('temporary-tag');
 
         $dom1 = new DomForge();
@@ -606,9 +594,8 @@ class DomParserTest extends TestCase
         $p = $dom->findOne('p');
         $this->assertNotNull($p);
         $this->assertEquals('p', $p->tag);
-        $this->assertContains('First', $p->innerHtml());
+        $this->assertStringContainsString('First', $p->innerHtml());
 
-        // Test with nested selector
         $nested = $dom->findOne('div p');
         $this->assertNotNull($nested);
         $this->assertEquals('p', $nested->tag);
@@ -631,21 +618,19 @@ class DomParserTest extends TestCase
         $this->assertInstanceOf(DomForge::class, $dom);
         $div = $dom->findOne('div.test');
         $this->assertNotNull($div);
-        $this->assertContains('Hello World', $div->innerHtml());
+        $this->assertStringContainsString('Hello World', $div->innerHtml());
     }
 
     public function testFromHtmlWithOptions()
     {
         $html = '<DIV><P>Content</P></DIV>';
 
-        // Test with lowercase = true (default)
         $config1 = (new \dobron\DomForge\Configuration())->setLowercase(true);
         $dom = DomForge::fromHtml($html, $config1);
         $div = $dom->findOne('div');
         $this->assertNotNull($div);
         $this->assertEquals('div', $div->tag);
 
-        // Test with lowercase = false
         $config2 = (new Configuration())->setLowercase(false);
         $dom2 = DomForge::fromHtml($html, $config2);
         $div2 = $dom2->findOne('DIV');
@@ -655,21 +640,16 @@ class DomParserTest extends TestCase
 
     public function testConfigurationSelfClosingTags()
     {
-        // Reset to make sure we start clean
         DomForge::resetSelfClosingTags();
 
-        // Verify custom tag is not self-closing by default
         $this->assertFalse(DomForge::isSelfClosingTag('my-component'));
 
-        // Use configuration to add custom self-closing tag
         $config = (new Configuration())->setSelfClosingTags(['my-component', 'custom-tag']);
         $dom = DomForge::fromHtml('<div><my-component/></div>', $config);
 
-        // Now the tags should be registered
         $this->assertTrue(DomForge::isSelfClosingTag('my-component'));
         $this->assertTrue(DomForge::isSelfClosingTag('custom-tag'));
 
-        // Clean up
         DomForge::resetSelfClosingTags();
     }
 
@@ -706,7 +686,7 @@ class DomParserTest extends TestCase
 
         $p = $section->findOne('p');
         $this->assertNotNull($p);
-        $this->assertContains('First', $p->innerHtml());
+        $this->assertStringContainsString('First', $p->innerHtml());
     }
 
     public function testDomTreeEmptyRoot()
@@ -958,10 +938,9 @@ class DomParserTest extends TestCase
         $div = $html->findOne('#test');
 
         $div->innerHtml = '<span>Changed</span>';
-        $this->assertContains('Changed', $div->innerHtml());
+        $this->assertStringContainsString('Changed', $div->innerHtml());
 
-        // Also works via property
-        $this->assertContains('Changed', $div->innerHtml);
+        $this->assertStringContainsString('Changed', $div->innerHtml);
     }
 
     public function testSetOuterHtml()
@@ -979,10 +958,10 @@ class DomParserTest extends TestCase
         $input = $html->findOne('input');
 
         $input->value = 'modified';
-        $this->assertContains('value="modified"', $input->outerHtml());
+        $this->assertStringContainsString('value="modified"', $input->outerHtml());
 
         $input->setAttribute('placeholder', 'Enter text');
-        $this->assertContains('placeholder="Enter text"', $input->outerHtml());
+        $this->assertStringContainsString('placeholder="Enter text"', $input->outerHtml());
     }
 
     public function testSetBooleanAttribute()
@@ -994,11 +973,11 @@ class DomParserTest extends TestCase
 
         $input->checked = true;
         $this->assertTrue($input->hasAttribute('checked'));
-        $this->assertContains('checked', $input->outerHtml());
+        $this->assertStringContainsString('checked', $input->outerHtml());
 
         $input->checked = false;
         $outer = $input->outerHtml();
-        $this->assertNotContains('checked', $outer);
+        $this->assertStringNotContainsString('checked', $outer);
     }
 
     public function testSetCallbackIsCalled()
@@ -1010,7 +989,6 @@ class DomParserTest extends TestCase
             $processedTags[] = $node->tag;
         });
 
-        // Trigger callback by getting output
         $html->save();
 
         $this->assertNotEmpty($processedTags);
@@ -1029,8 +1007,8 @@ class DomParserTest extends TestCase
             }
         });
 
-        $this->assertContains('target="_blank"', (string) $html);
-        $this->assertContains('rel="noopener"', (string) $html);
+        $this->assertStringContainsString('target="_blank"', (string) $html);
+        $this->assertStringContainsString('rel="noopener"', (string) $html);
     }
 
     public function testRemoveCallback()
@@ -1182,7 +1160,7 @@ class DomParserTest extends TestCase
             $this->assertEquals('test', $div->id);
 
             $p = $dom->findOne('p');
-            $this->assertContains('Content from file', $p->innerHtml());
+            $this->assertStringContainsString('Content from file', $p->innerHtml());
         } finally {
             unlink($tempFile);
         }
@@ -1234,7 +1212,7 @@ class DomParserTest extends TestCase
 
         $this->assertEquals('p', $element->tag);
         $this->assertEquals('Hello World', $element->innerHtml());
-        $this->assertContains('<p>Hello World</p>', $element->outerHtml());
+        $this->assertStringContainsString('<p>Hello World</p>', $element->outerHtml());
     }
 
     public function testCreateElementWithAttributes()
@@ -1245,7 +1223,7 @@ class DomParserTest extends TestCase
         $this->assertEquals('a', $element->tag);
         $this->assertEquals('https://example.com', $element->getAttribute('href'));
         $this->assertEquals('btn', $element->getAttribute('class'));
-        $this->assertContains('href="https://example.com"', $element->outerHtml());
+        $this->assertStringContainsString('href="https://example.com"', $element->outerHtml());
     }
 
     public function testCreateElementWithBooleanAttribute()
@@ -1254,7 +1232,7 @@ class DomParserTest extends TestCase
         $element = $dom->createElement('input', null, ['type' => 'checkbox', 'checked' => true]);
 
         $this->assertTrue($element->hasAttribute('checked'));
-        $this->assertContains('checked', $element->outerHtml());
+        $this->assertStringContainsString('checked', $element->outerHtml());
     }
 
     public function testCreateElementSelfClosing()
@@ -1263,7 +1241,7 @@ class DomParserTest extends TestCase
         $element = $dom->createElement('br');
 
         $this->assertEquals('br', $element->tag);
-        $this->assertContains('/>', $element->outerHtml());
+        $this->assertStringContainsString('/>', $element->outerHtml());
     }
 
     public function testCreateTextNode()
@@ -1294,7 +1272,7 @@ class DomParserTest extends TestCase
 
         $this->assertSame($child, $result);
         $this->assertSame($container, $child->parent);
-        $this->assertContains('<span>Child content</span>', $container->innerHtml());
+        $this->assertStringContainsString('<span>Child content</span>', $container->innerHtml());
     }
 
     public function testRemoveChild()
@@ -1307,7 +1285,7 @@ class DomParserTest extends TestCase
 
         $this->assertSame($span, $removed);
         $this->assertNull($span->parent);
-        $this->assertNotContains('<span>', $container->innerHtml());
+        $this->assertStringNotContainsString('<span>', $container->innerHtml());
     }
 
     public function testInsertBefore()

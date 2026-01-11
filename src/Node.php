@@ -93,9 +93,8 @@ class Node
     /**
      * @param string $name
      * @param mixed $value
-     * @return void
      */
-    public function __set(string $name, $value)
+    public function __set(string $name, $value): void
     {
         switch ($name) {
             case 'outerHtml':
@@ -134,11 +133,7 @@ class Node
         return array_key_exists($name, $this->attributes) || isset($this->attributes[$name]);
     }
 
-    /**
-     * @param string $name
-     * @return void
-     */
-    public function __unset(string $name)
+    public function __unset(string $name): void
     {
         if (array_key_exists($name, $this->attributes)) {
             $index = array_search($name, array_keys($this->attributes), true);
@@ -155,10 +150,7 @@ class Node
         }
     }
 
-    /**
-     * @return void
-     */
-    public function clear()
+    public function clear(): void
     {
         $this->dom = null;
         $this->nodes = [];
@@ -365,10 +357,7 @@ class Node
         return strpos($this->tag, ':') !== false;
     }
 
-    /**
-     * @return void
-     */
-    protected function rebuild()
+    protected function rebuild(): void
     {
         $innerHtml = $this->innerHtml();
 

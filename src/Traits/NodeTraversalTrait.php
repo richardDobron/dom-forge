@@ -8,10 +8,7 @@ use dobron\DomForge\Node;
 
 trait NodeTraversalTrait
 {
-    /**
-     * @return Node|null
-     */
-    public function parent(Node $parent = null)
+    public function parent(?Node $parent = null): ?Node
     {
         if ($parent !== null) {
             $this->parent = $parent;
@@ -34,28 +31,19 @@ trait NodeTraversalTrait
         return $this->children[$idx] ?? null;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function firstChild()
+    public function firstChild(): ?Node
     {
         return $this->children[0] ?? null;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function lastChild()
+    public function lastChild(): ?Node
     {
         $count = count($this->children);
 
         return $count > 0 ? $this->children[$count - 1] : null;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function nextSibling()
+    public function nextSibling(): ?Node
     {
         if (! $this->parent) {
             return null;
@@ -69,10 +57,7 @@ trait NodeTraversalTrait
         return $this->parent->children[$index + 1] ?? null;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function previousSibling()
+    public function previousSibling(): ?Node
     {
         if (! $this->parent) {
             return null;
@@ -95,10 +80,7 @@ trait NodeTraversalTrait
         return $child;
     }
 
-    /**
-     * @return Node|null
-     */
-    public function removeChild(Node $child)
+    public function removeChild(Node $child): ?Node
     {
         $nodeIndex = array_search($child, $this->nodes, true);
         if ($nodeIndex !== false) {
