@@ -16,7 +16,7 @@ trait NodeSelectorTrait
     {
         $selectors = $this->parseSelector($selector);
         if (empty($selectors)) {
-            return [];
+            return $idx === null ? [] : null;
         }
 
         $foundKeys = [];
