@@ -160,6 +160,7 @@ class DomForge
     {
         switch ($name) {
             case 'outerHtml':
+                return $this->root ? $this->root->outerHtml() : '';
             case 'innerHtml':
                 return $this->root ? $this->root->innerHtml() : '';
             case 'textContent':
