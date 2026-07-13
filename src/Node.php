@@ -25,6 +25,9 @@ class Node
     /** @var string */
     public $tag = 'text';
 
+    /** @var \stdClass */
+    public $context;
+
     /** @var array */
     public $attributes = [];
 
@@ -49,6 +52,7 @@ class Node
     public function __construct(DomForge $dom)
     {
         $this->dom = $dom;
+        $this->context = new \stdClass();
         $dom->nodes[] = $this;
     }
 
@@ -164,6 +168,7 @@ class Node
         $this->nodes = [];
         $this->parent = null;
         $this->children = [];
+        $this->context = new \stdClass();
     }
 
     public function dom(): DomForge
