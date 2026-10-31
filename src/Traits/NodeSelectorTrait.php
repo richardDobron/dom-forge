@@ -9,6 +9,9 @@ use dobron\DomForge\Node;
 
 trait NodeSelectorTrait
 {
+    /** @var array<string, array> */
+    protected static $parsedSelectors = [];
+
     /**
      * @return Node[]|Node|null
      */
@@ -19,6 +22,8 @@ trait NodeSelectorTrait
             return $idx === null ? [] : null;
         }
 
+        // When only the first match is needed, descendant scans can stop early
+        $firstOnly = $idx === 0;
         $foundKeys = [];
 
         foreach ($selectors as $selectorGroup) {
@@ -28,13 +33,24 @@ trait NodeSelectorTrait
 
             $head = [$this->info[DomForge::INFO_BEGIN] => 1];
             $combinator = ' ';
+            $lastPartIndex = count($selectorGroup) - 1;
 
-            foreach ($selectorGroup as $selectorPart) {
+            foreach ($selectorGroup as $partIndex => $selectorPart) {
                 $matches = [];
 
-                foreach ($head as $nodeIndex => $value) {
-                    $node = ($nodeIndex === -1) ? $this->dom->root : $this->dom->nodes[$nodeIndex];
-                    $node->seek($selectorPart, $matches, $combinator, $lowercase);
+                if ($combinator === ' ') {
+                    $this->seekDescendants(
+                        array_keys($head),
+                        $selectorPart,
+                        $matches,
+                        $lowercase,
+                        $firstOnly && $partIndex === $lastPartIndex
+                    );
+                } else {
+                    foreach ($head as $nodeIndex => $value) {
+                        $node = ($nodeIndex === -1) ? $this->dom->root : $this->dom->nodes[$nodeIndex];
+                        $node->seek($selectorPart, $matches, $combinator, $lowercase);
+                    }
                 }
 
                 $head = $matches;
@@ -78,6 +94,45 @@ trait NodeSelectorTrait
             if ($this->matchesSelector($candidateNode, $tag, $id, $classes, $attributeSelectors, $lowercase)) {
                 $matches[$candidateNode->info[DomForge::INFO_BEGIN]] = 1;
             }
+        }
+    }
+
+    /**
+     * @param int[] $headIndexes
+     */
+    protected function seekDescendants(
+        array $headIndexes,
+        array $selector,
+        array &$matches,
+        bool $lowercase,
+        bool $firstOnly
+    ): void {
+        [$tag, $id, $classes, $attributeSelectors] = $selector;
+        $nodes = $this->dom->nodes;
+        $nodeCount = count($nodes);
+        $coveredEnd = 0;
+
+        sort($headIndexes);
+
+        foreach ($headIndexes as $headIndex) {
+            $head = ($headIndex === -1) ? $this->dom->root : $nodes[$headIndex];
+            $beginIndex = $head->info[DomForge::INFO_BEGIN] ?? 0;
+            $endIndex = $head->info[DomForge::INFO_END] ?? -1;
+            if ($endIndex <= 0 || $endIndex > $nodeCount) {
+                $endIndex = $nodeCount;
+            }
+
+            for ($i = max($beginIndex + 1, $coveredEnd); $i < $endIndex; ++$i) {
+                if ($this->matchesSelector($nodes[$i], $tag, $id, $classes, $attributeSelectors, $lowercase)) {
+                    $matches[$nodes[$i]->info[DomForge::INFO_BEGIN]] = 1;
+
+                    if ($firstOnly) {
+                        return;
+                    }
+                }
+            }
+
+            $coveredEnd = max($coveredEnd, $endIndex);
         }
     }
 
@@ -136,10 +191,7 @@ trait NodeSelectorTrait
             return false;
         }
 
-        $nodeTag = $lowercase ? strtolower($node->tag) : $node->tag;
-        $selectorTag = $lowercase ? strtolower($tag) : $tag;
-
-        if ($tag !== '' && $tag !== '*' && $nodeTag !== $selectorTag) {
+        if ($tag !== '' && $tag !== '*' && ($lowercase ? strcasecmp($node->tag, $tag) !== 0 : $node->tag !== $tag)) {
             return false;
         }
 
@@ -148,7 +200,18 @@ trait NodeSelectorTrait
         }
 
         if (! empty($classes)) {
-            $nodeClasses = preg_split('/\s+/', $node->attributes['class'] ?? '');
+            $classAttribute = $node->attributes['class'] ?? '';
+            if (! is_string($classAttribute)) {
+                return false;
+            }
+
+            foreach ($classes as $className) {
+                if ($className !== '' && strpos($classAttribute, $className) === false) {
+                    return false;
+                }
+            }
+
+            $nodeClasses = preg_split('/\s+/', $classAttribute);
             foreach ($classes as $className) {
                 if (! in_array($className, $nodeClasses, true)) {
                     return false;
@@ -208,6 +271,12 @@ trait NodeSelectorTrait
 
     protected function parseSelector(string $selectorString): array
     {
+        $lowercaseTags = $this->dom && $this->dom->getConfiguration()->isLowercase();
+        $cacheKey = ($lowercaseTags ? '1' : '0') . $selectorString;
+        if (isset(self::$parsedSelectors[$cacheKey])) {
+            return self::$parsedSelectors[$cacheKey];
+        }
+
         $pattern = "/([\w:\*-]*)(?:\#([\w-]+))?(?:|\.([\w\.-]+))?((?:\[@?(?:!?[\w:-]+)(?:(?:[!*^$|~]?=)[\"']?(?:.*?)[\"']?)?(?:\s*?(?:[iIsS])?)?\])+)?([\/, >+~]+)/is";
 
         preg_match_all($pattern, trim($selectorString) . ' ', $rawMatches, PREG_SET_ORDER);
@@ -221,7 +290,7 @@ trait NodeSelectorTrait
                 continue;
             }
 
-            if ($this->dom && $this->dom->getConfiguration()->isLowercase()) {
+            if ($lowercaseTags) {
                 $match[1] = strtolower($match[1]);
             }
 
@@ -271,6 +340,10 @@ trait NodeSelectorTrait
             $selectors[] = $currentGroup;
         }
 
-        return $selectors;
+        if (count(self::$parsedSelectors) >= 512) {
+            self::$parsedSelectors = [];
+        }
+
+        return self::$parsedSelectors[$cacheKey] = $selectors;
     }
 }

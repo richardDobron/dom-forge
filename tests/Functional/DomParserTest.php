@@ -637,6 +637,31 @@ class DomParserTest extends TestCase
         $this->assertEquals('p', $nested->tag);
     }
 
+    public function testDescendantSearchWithNestedAncestors()
+    {
+        $html = '<div id="a"><div id="b"><span id="s1">1</span></div><span id="s2">2</span></div><span id="s3">3</span><div><span id="s4">4</span></div>';
+        $dom = $this->parse($html);
+
+        $ids = array_map(function (Node $node) {
+            return $node->getAttribute('id');
+        }, $dom->find('div span'));
+
+        $this->assertEquals(['s1', 's2', 's4'], $ids);
+        $this->assertEquals('s1', $dom->findOne('div span')->getAttribute('id'));
+        $this->assertEquals('s1', $dom->find('div span', 0)->getAttribute('id'));
+        $this->assertEquals('s4', $dom->find('div span', -1)->getAttribute('id'));
+        $this->assertEquals('s1', $dom->findOne('#b span, #a > span')->getAttribute('id'));
+    }
+
+    public function testClassSelectorSkipsValuelessClassAttribute()
+    {
+        $html = '<div class>x</div><div class="y">y</div>';
+        $dom = $this->parse($html);
+
+        $this->assertCount(1, $dom->find('.y'));
+        $this->assertEquals('y', $dom->findOne('div.y')->textContent);
+    }
+
     public function testFindOneReturnsNullWhenNotFound()
     {
         $html = '<div><p>Test</p></div>';
