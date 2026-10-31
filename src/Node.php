@@ -49,6 +49,9 @@ class Node
     /** @var DomForge|null */
     private $dom;
 
+    /** @var array<string, string[]|false> Source/target charset pair => [source, target], or false if no conversion is needed */
+    private static $charsetConversions = [];
+
     public function __construct(DomForge $dom)
     {
         $this->dom = $dom;
@@ -171,13 +174,13 @@ class Node
     public function innerHtml(): string
     {
         if (isset($this->info[DomForge::INFO_INNER])) {
-            return $this->info[DomForge::INFO_INNER];
+            return $this->convertText($this->info[DomForge::INFO_INNER]);
         }
 
         if (isset($this->info[DomForge::INFO_TEXT])) {
             $text = $this->info[DomForge::INFO_TEXT];
 
-            return $this->dom ? $this->dom->restoreNoise($text) : $text;
+            return $this->convertText($this->dom ? $this->dom->restoreNoise($text) : $text);
         }
 
         $result = '';
@@ -199,13 +202,13 @@ class Node
         }
 
         if (isset($this->info[DomForge::INFO_OUTER])) {
-            return $this->info[DomForge::INFO_OUTER];
+            return $this->convertText($this->info[DomForge::INFO_OUTER]);
         }
 
         if (isset($this->info[DomForge::INFO_TEXT])) {
             $text = $this->info[DomForge::INFO_TEXT];
 
-            return $this->dom ? $this->dom->restoreNoise($text) : $text;
+            return $this->convertText($this->dom ? $this->dom->restoreNoise($text) : $text);
         }
 
         if ($this->dom && isset($this->info[DomForge::INFO_BEGIN]) && isset($this->dom->nodes[$this->info[DomForge::INFO_BEGIN]])) {
@@ -214,13 +217,15 @@ class Node
             $result = $this->makeup();
         }
 
+        $result = $this->convertText($result);
+
         if (isset($this->info[DomForge::INFO_INNER])) {
             if ($this->tag !== 'br') {
-                $result .= $this->info[DomForge::INFO_INNER];
+                $result .= $this->convertText($this->info[DomForge::INFO_INNER]);
             }
         } elseif ($this->nodes) {
             foreach ($this->nodes as $node) {
-                $result .= $this->convertText($node->outerHtml());
+                $result .= $node->outerHtml();
             }
         }
 
@@ -238,14 +243,14 @@ class Node
     public function textContent(): string
     {
         if (isset($this->info[DomForge::INFO_INNER])) {
-            return $this->info[DomForge::INFO_INNER];
+            return $this->convertText($this->info[DomForge::INFO_INNER]);
         }
 
         switch ($this->nodetype) {
             case DomForge::TYPE_TEXT:
                 $text = $this->info[DomForge::INFO_TEXT] ?? '';
 
-                return $this->dom ? $this->dom->restoreNoise($text) : $text;
+                return $this->convertText($this->dom ? $this->dom->restoreNoise($text) : $text);
             case DomForge::TYPE_COMMENT:
             case DomForge::TYPE_UNKNOWN:
                 return '';
@@ -261,7 +266,7 @@ class Node
                 if ($node->tag === 'p') {
                     $result = trim($result) . "\n\n";
                 }
-                $result .= $this->convertText($node->textContent());
+                $result .= $node->textContent();
                 if ($node->tag === 'span' && $this->dom) {
                     $result .= $this->dom->getConfiguration()->getDefaultSpanText();
                 }
@@ -317,22 +322,25 @@ class Node
 
     public function convertText(string $text): string
     {
-        if (! $this->dom) {
+        if (! $this->dom || ! preg_match('/[\x80-\xFF]/', $text)) {
             return $text;
         }
 
-        $sourceCharset = strtoupper($this->dom->charset);
-        $targetCharset = strtoupper($this->dom->getConfiguration()->getTargetCharset());
+        $targetCharset = $this->dom->getConfiguration()->getTargetCharset();
+        $cacheKey = $this->dom->charset . '|' . $targetCharset;
 
-        if (empty($sourceCharset) || empty($targetCharset) || strcasecmp($sourceCharset, $targetCharset) === 0) {
+        if (! isset(self::$charsetConversions[$cacheKey])) {
+            $source = strtoupper($this->dom->charset);
+            $target = strtoupper($targetCharset);
+            self::$charsetConversions[$cacheKey] = empty($source) || empty($target) || $source === $target ? false : [$source, $target];
+        }
+
+        $conversion = self::$charsetConversions[$cacheKey];
+        if ($conversion === false || ($conversion[1] === 'UTF-8' && mb_check_encoding($text, 'UTF-8'))) {
             return $this->stripBom($text);
         }
 
-        if ($targetCharset === 'UTF-8' && mb_check_encoding($text, 'UTF-8')) {
-            return $this->stripBom($text);
-        }
-
-        $converted = @iconv($sourceCharset, $targetCharset, $text);
+        $converted = @iconv($conversion[0], $conversion[1], $text);
 
         return $this->stripBom($converted !== false ? $converted : $text);
     }

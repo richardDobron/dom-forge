@@ -351,6 +351,35 @@ class DomParserTest extends TestCase
         $this->assertStringContainsString('🎉', $div->innerHtml());
     }
 
+    public function testCp1252ContentIsConvertedOnce()
+    {
+        $html = "tail \xE9<div class=\"caf\xE9\"><p title=\"na\xEFve\">caf\xE9 <b>cr\xE8me</b></p></div>";
+        $dom = $this->parse($html);
+
+        $this->assertEquals('tail é<div class="café"><p title="naïve">café <b>crème</b></p></div>', $dom->save());
+        $this->assertEquals('café <b>crème</b>', $dom->findOne('p')->innerHtml());
+        $this->assertEquals('<p title="naïve">café <b>crème</b></p>', $dom->findOne('div')->innerHtml());
+        $this->assertEquals('naïve', $dom->findOne('p')->getAttribute('title'));
+        $this->assertEquals('café crème', $dom->findOne('p')->textContent());
+    }
+
+    public function testUtf8ContentIsConvertedToTargetCharset()
+    {
+        $html = '<div class="café"><p>café <b>crème</b></p></div>';
+        $dom = DomForge::fromHtml($html, (new Configuration())->setTargetCharset('CP1252'));
+
+        $this->assertEquals("<div class=\"caf\xE9\"><p>caf\xE9 <b>cr\xE8me</b></p></div>", $dom->save());
+        $this->assertEquals("caf\xE9 <b>cr\xE8me</b>", $dom->findOne('p')->innerHtml());
+    }
+
+    public function testLeadingBomIsStripped()
+    {
+        $dom = $this->parse("\xEF\xBB\xBF<p>x</p><div>\xEF\xBB\xBF<b>y</b></div>");
+
+        $this->assertEquals('<p>x</p><div><b>y</b></div>', $dom->save());
+        $this->assertEquals('<b>y</b>', $dom->findOne('div')->innerHtml());
+    }
+
     public function testDeeplyNestedHtml()
     {
         $html = '<div><div><div><div><div><p>Deep content</p></div></div></div></div></div>';
