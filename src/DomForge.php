@@ -263,11 +263,9 @@ class DomForge
         }
 
         return preg_replace_callback(
-            '/___noise___(.{5})/',
+            '/___noise___\d+___/',
             function (array $matches) {
-                $key = '___noise___' . $matches[1];
-
-                return $this->noiseMap[$key] ?? '';
+                return $this->noiseMap[$matches[0]] ?? $matches[0];
             },
             $text
         );
@@ -751,11 +749,20 @@ class DomForge
     {
         $count = preg_match_all($pattern, $this->html, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
-        for ($i = $count - 1; $i > -1; --$i) {
-            $key = '___noise___' . sprintf('% 5d', count($this->noiseMap) + 1000);
+        if ($count > 0) {
             $idx = $removeTag ? 0 : 1;
-            $this->noiseMap[$key] = $matches[$i][$idx][0];
-            $this->html = substr_replace($this->html, $key, (int) $matches[$i][$idx][1], strlen($matches[$i][$idx][0]));
+            $result = '';
+            $lastPosition = 0;
+
+            foreach ($matches as $match) {
+                [$noise, $offset] = $match[$idx];
+                $key = '___noise___' . count($this->noiseMap) . '___';
+                $this->noiseMap[$key] = $noise;
+                $result .= substr($this->html, $lastPosition, $offset - $lastPosition) . $key;
+                $lastPosition = $offset + strlen($noise);
+            }
+
+            $this->html = $result . substr($this->html, $lastPosition);
         }
 
         $this->size = strlen($this->html);

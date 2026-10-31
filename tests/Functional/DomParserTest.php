@@ -362,6 +362,42 @@ class DomParserTest extends TestCase
         $this->assertNotNull($p);
     }
 
+    public function testNoiseIsRestoredOnSave()
+    {
+        $html = '<div><script>var a = "<b>";</script><style>.x { color: red; }</style><!-- note -->'
+            . '<![CDATA[ raw ]]><?php echo "x"; ?><code><i>code</i></code><p>Content</p></div>';
+        $dom = $this->parse($html);
+
+        $this->assertEquals($html, $dom->save());
+        $this->assertCount(1, $dom->find('p'));
+    }
+
+    public function testNoiseInUnquotedAttributeIsRestored()
+    {
+        $html = '<a href=<?php echo $url ?> id="x">link</a>';
+        $dom = $this->parse($html);
+
+        $this->assertEquals($html, $dom->save());
+        $this->assertEquals('<?php echo $url ?>', $dom->findOne('#x')->getAttribute('href'));
+    }
+
+    public function testManyNoiseBlocksAreRestored()
+    {
+        $html = str_repeat('<p>x</p><!-- comment --><script>var a = 1;</script>', 2000);
+        $dom = $this->parse($html);
+
+        $this->assertEquals($html, $dom->save());
+        $this->assertCount(2000, $dom->find('p'));
+    }
+
+    public function testNoiseLikeTextIsPreserved()
+    {
+        $html = '<p>___noise___7___</p>';
+        $dom = $this->parse($html);
+
+        $this->assertEquals($html, $dom->save());
+    }
+
     public function testWhitespaceHandling()
     {
         $html = "<div>   \n\t  <p>  Content  </p>  \n</div>";
