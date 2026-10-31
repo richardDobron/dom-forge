@@ -236,8 +236,12 @@ trait NodeSelectorTrait
 
     protected function matchAttribute(string $operator, string $pattern, $value, string $caseSensitivity): bool
     {
-        if ($value === null) {
-            return $operator === '';
+        if ($value === null || $value === false) {
+            return $operator === '!=';
+        }
+
+        if (! is_string($value)) {
+            $value = $value === true ? '' : (string) $value;
         }
 
         if ($caseSensitivity === 'i') {

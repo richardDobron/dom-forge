@@ -96,6 +96,47 @@ class DomParserTest extends TestCase
         $this->assertEquals('email', $textInput->getAttribute('name'));
     }
 
+    public function testFindByAttributeExistence()
+    {
+        $html = '<p id="a" title="t">1</p><p id="b">2</p><input id="c" disabled><input id="d">';
+        $dom = $this->parse($html);
+
+        $ids = function (array $nodes) {
+            return array_map(function (Node $node) {
+                return $node->getAttribute('id');
+            }, $nodes);
+        };
+
+        $this->assertEquals(['a'], $ids($dom->find('[title]')));
+        $this->assertEquals(['a'], $ids($dom->find('p[title]')));
+        $this->assertEquals(['c'], $ids($dom->find('[disabled]')));
+        $this->assertEquals(['d'], $ids($dom->find('input[!disabled]')));
+        $this->assertEquals(['b'], $ids($dom->find('p[!title]')));
+        $this->assertEquals([], $ids($dom->find('[nope]')));
+    }
+
+    public function testFindByAttributeNotEqualIncludesMissingAttribute()
+    {
+        $html = '<a id="a" rel="nofollow">1</a><a id="b" rel="me">2</a><a id="c">3</a>';
+        $dom = $this->parse($html);
+
+        $ids = array_map(function (Node $node) {
+            return $node->getAttribute('id');
+        }, $dom->find('a[rel!=nofollow]'));
+
+        $this->assertEquals(['b', 'c'], $ids);
+    }
+
+    public function testFindByValueOperatorsOnValuelessAttribute()
+    {
+        $html = '<input id="a" disabled><input id="b" disabled="disabled">';
+        $dom = $this->parse($html);
+
+        $this->assertCount(1, $dom->find('[disabled=""]'));
+        $this->assertCount(1, $dom->find('[disabled^=dis]'));
+        $this->assertCount(1, $dom->find('[disabled*=DIS i]'));
+    }
+
     public function testSelfClosingTags()
     {
         $html = '<div><br><img src="test.jpg"><input type="text"></div>';
