@@ -509,6 +509,32 @@ class DomParserTest extends TestCase
         $this->assertEquals('UTF-8', $dom->charset);
     }
 
+    public function testCharsetDetectionFromHttpEquiv()
+    {
+        $this->assertEquals('windows-1250', $this->parse('<meta http-equiv="content-type" content="text/html; charset=windows-1250">')->charset);
+        $this->assertEquals('ISO-8859-2', $this->parse('<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-2">')->charset);
+    }
+
+    public function testCharsetDetectionPrefersHttpEquivOverMetaCharset()
+    {
+        $html = '<meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=koi8-r">';
+
+        $this->assertEquals('koi8-r', $this->parse($html)->charset);
+    }
+
+    public function testCharsetDetectionSkipsMetaWithoutCharset()
+    {
+        $this->assertEquals('big5', $this->parse('<meta name="viewport" content="width=device-width"><meta charset="big5">')->charset);
+        $this->assertEquals('big5', $this->parse('<meta http-equiv="Content-Type" content="text/html"><meta charset="big5">')->charset);
+    }
+
+    public function testValuelessMetaCharsetFallsBackToDetection()
+    {
+        $dom = $this->parse('<meta charset><p>x</p>');
+
+        $this->assertEquals('UTF-8', $dom->charset);
+    }
+
     public function testSaveToString()
     {
         $html = '<div><p>Content</p></div>';

@@ -343,22 +343,7 @@ class DomForge
 
     protected function detectCharset(): string
     {
-        $detectedCharset = null;
-
-        $metaElement = $this->root->findOne('meta[http-equiv=Content-Type]', true);
-        if ($metaElement) {
-            $contentValue = $metaElement->getAttribute('content');
-            if ($contentValue && preg_match('/charset=(.+)/i', $contentValue, $matches)) {
-                $detectedCharset = $matches[1];
-            }
-        }
-
-        if (empty($detectedCharset)) {
-            $metaCharset = $this->root->findOne('meta[charset]');
-            if ($metaCharset) {
-                $detectedCharset = $metaCharset->getAttribute('charset');
-            }
-        }
+        $detectedCharset = $this->detectMetaCharset();
 
         if (empty($detectedCharset) && function_exists('mb_detect_encoding')) {
             $encoding = mb_detect_encoding($this->html, ['UTF-8', 'CP1252', 'ISO-8859-1']);
@@ -377,6 +362,57 @@ class DomForge
         }
 
         return $this->charset = $detectedCharset;
+    }
+
+    protected function detectMetaCharset(): ?string
+    {
+        $httpEquivSeen = false;
+        $metaCharsetSeen = false;
+        $metaCharset = null;
+
+        foreach ($this->nodes as $node) {
+            if ($node->nodetype !== self::TYPE_ELEMENT || strcasecmp($node->tag, 'meta') !== 0) {
+                continue;
+            }
+
+            $httpEquiv = $this->getMetaAttribute($node, 'http-equiv');
+            if (! $httpEquivSeen && is_string($httpEquiv) && strcasecmp($httpEquiv, 'content-type') === 0) {
+                $httpEquivSeen = true;
+                $content = $this->getMetaAttribute($node, 'content');
+
+                if (is_string($content) && preg_match('/charset=(.+)/i', $content, $matches)) {
+                    return $matches[1];
+                }
+            }
+
+            if (! $metaCharsetSeen) {
+                $charset = $this->getMetaAttribute($node, 'charset');
+                if ($charset !== null) {
+                    $metaCharsetSeen = true;
+                    $metaCharset = is_string($charset) && $charset !== '' ? $charset : null;
+                }
+            }
+        }
+
+        return $metaCharset;
+    }
+
+    /**
+     * @return string|bool|null
+     */
+    protected function getMetaAttribute(Node $node, string $name)
+    {
+        if (! array_key_exists($name, $node->attributes)) {
+            foreach ($node->attributes as $attributeName => $value) {
+                if (strcasecmp((string) $attributeName, $name) === 0) {
+                    return $node->getAttribute((string) $attributeName);
+                }
+            }
+
+            return null;
+        }
+
+        return $node->getAttribute($name);
     }
 
     protected function readTag(): bool
