@@ -8,6 +8,9 @@ use dobron\DomForge\Node;
 
 trait NodeTraversalTrait
 {
+    /** @var int|null Cached position in the parent's children, verified on every use */
+    protected $childIndex = null;
+
     public function parent(?Node $parent = null): ?Node
     {
         if ($parent !== null) {
@@ -45,12 +48,8 @@ trait NodeTraversalTrait
 
     public function nextSibling(): ?Node
     {
-        if (! $this->parent) {
-            return null;
-        }
-
-        $index = array_search($this, $this->parent->children, true);
-        if ($index === false) {
+        $index = $this->indexInParent();
+        if ($index === null) {
             return null;
         }
 
@@ -59,16 +58,34 @@ trait NodeTraversalTrait
 
     public function previousSibling(): ?Node
     {
-        if (! $this->parent) {
-            return null;
-        }
-
-        $index = array_search($this, $this->parent->children, true);
-        if ($index === false || $index === 0) {
+        $index = $this->indexInParent();
+        if ($index === null || $index === 0) {
             return null;
         }
 
         return $this->parent->children[$index - 1] ?? null;
+    }
+
+    protected function indexInParent(): ?int
+    {
+        if (! $this->parent) {
+            return null;
+        }
+
+        $children = $this->parent->children;
+        if ($this->childIndex !== null && ($children[$this->childIndex] ?? null) === $this) {
+            return $this->childIndex;
+        }
+
+        $found = null;
+        foreach ($children as $index => $child) {
+            $child->childIndex = $index;
+            if ($found === null && $child === $this) {
+                $found = $index;
+            }
+        }
+
+        return $found;
     }
 
     public function appendChild(Node $child): Node

@@ -650,7 +650,7 @@ class DomForge
             $node->info[self::INFO_ENDSPACE] .= '/';
             $node->info[self::INFO_END] = 0;
         } else {
-            if (! in_array(strtolower($node->tag), self::$selfClosingTags, true)) {
+            if (! self::isSelfClosingTag($node->tag)) {
                 $this->currentParent = $node;
             }
         }

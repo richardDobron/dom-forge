@@ -155,21 +155,17 @@ trait NodeSelectorTrait
                 return $this->children;
 
             case '+': // Adjacent sibling selector
-                if ($this->parent) {
-                    $index = array_search($this, $this->parent->children, true);
-                    if ($index !== false && isset($this->parent->children[$index + 1])) {
-                        return [$this->parent->children[$index + 1]];
-                    }
+                $index = $this->indexInParent();
+                if ($index !== null && isset($this->parent->children[$index + 1])) {
+                    return [$this->parent->children[$index + 1]];
                 }
 
                 return [];
 
             case '~': // General sibling selector
-                if ($this->parent) {
-                    $index = array_search($this, $this->parent->children, true);
-                    if ($index !== false) {
-                        return array_slice($this->parent->children, $index + 1);
-                    }
+                $index = $this->indexInParent();
+                if ($index !== null) {
+                    return array_slice($this->parent->children, $index + 1);
                 }
 
                 return [];

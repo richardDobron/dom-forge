@@ -1528,4 +1528,69 @@ class DomParserTest extends TestCase
 
         $this->assertEquals('<p class="new">New paragraph</p>', $child->outerHtml);
     }
+
+    public function testNodeContext()
+    {
+        $dom = DomForge::fromHtml('<p context="attr">p</p><b>b</b>');
+        $p = $dom->findOne('p');
+        $b = $dom->findOne('b');
+
+        $this->assertTrue(isset($b->context));
+        $this->assertInstanceOf(\stdClass::class, $b->context);
+
+        $b->context->foo = 1;
+        $this->assertSame(1, $b->context->foo);
+
+        $b->context = (object) ['bar' => 2];
+        $this->assertSame(2, $b->context->bar);
+
+        $this->assertInstanceOf(\stdClass::class, $p->context);
+        $this->assertEquals('attr', $p->getAttribute('context'));
+
+        $p->removeAttribute('context');
+        $this->assertEquals('<p>p</p>', $p->outerHtml());
+        $this->assertInstanceOf(\stdClass::class, $p->context);
+    }
+
+    public function testSiblingNavigationAfterMutation()
+    {
+        $dom = DomForge::fromHtml('<ul><li id="a">a</li><li id="b">b</li><li id="c">c</li></ul>');
+        $ul = $dom->findOne('ul');
+        $a = $dom->findOne('#a');
+        $b = $dom->findOne('#b');
+
+        $this->assertSame($b, $a->nextSibling());
+
+        $ul->removeChild($b);
+        $this->assertEquals('c', $a->nextSibling()->getAttribute('id'));
+        $this->assertNull($b->nextSibling());
+
+        $ul->insertBefore($b, $a);
+        $this->assertSame($b, $a->previousSibling());
+        $this->assertSame($a, $b->nextSibling());
+    }
+
+    public function testWalkingManySiblings()
+    {
+        $dom = DomForge::fromHtml('<ul>' . str_repeat('<li>x</li>', 500) . '</ul>');
+
+        $count = 0;
+        for ($node = $dom->findOne('li'); $node; $node = $node->nextSibling()) {
+            ++$count;
+        }
+        $this->assertEquals(500, $count);
+
+        $count = 0;
+        for ($node = $dom->find('li', -1); $node; $node = $node->previousSibling()) {
+            ++$count;
+        }
+        $this->assertEquals(500, $count);
+    }
+
+    public function testTextContentParagraphSpacing()
+    {
+        $dom = DomForge::fromHtml("<div>  lead  <p>one</p>  mid  <p> two </p><span>s</span>tail<p></p>   </div>");
+
+        $this->assertEquals("lead\n\none  mid\n\n two s tail\n\n   ", $dom->findOne('div')->textContent());
+    }
 }

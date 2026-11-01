@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace dobron\DomForge\Traits;
 
+use dobron\DomForge\DomForge;
+
 trait NodeAttributeTrait
 {
     public function getAttributes(): array
@@ -16,7 +18,7 @@ trait NodeAttributeTrait
      */
     public function getAttribute(string $name)
     {
-        $value = $this->__get($name);
+        $value = $this->readProperty($name);
         if ($value === true) {
             return true;
         }
@@ -39,6 +41,18 @@ trait NodeAttributeTrait
 
     public function removeAttribute(string $name): void
     {
-        $this->__unset($name);
+        if (array_key_exists($name, $this->attributes)) {
+            $index = array_search($name, array_keys($this->attributes), true);
+
+            unset($this->attributes[$name]);
+
+            if ($index !== false && isset($this->info[DomForge::INFO_SPACE][$index])) {
+                array_splice($this->info[DomForge::INFO_SPACE], $index, 1);
+            }
+
+            if ($index !== false && isset($this->info[DomForge::INFO_QUOTE][$index])) {
+                array_splice($this->info[DomForge::INFO_QUOTE], $index, 1);
+            }
+        }
     }
 }

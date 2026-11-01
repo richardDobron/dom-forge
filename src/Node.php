@@ -55,7 +55,7 @@ class Node
     public function __construct(DomForge $dom)
     {
         $this->dom = $dom;
-        $this->context = new \stdClass();
+        unset($this->context);
         $dom->nodes[] = $this;
     }
 
@@ -74,6 +74,18 @@ class Node
      * @return mixed
      */
     public function __get(string $name)
+    {
+        if ($name === 'context') {
+            return $this->context = new \stdClass();
+        }
+
+        return $this->readProperty($name);
+    }
+
+    /**
+     * @return mixed
+     */
+    protected function readProperty(string $name)
     {
         if (isset($this->attributes[$name])) {
             $value = $this->attributes[$name];
@@ -104,6 +116,10 @@ class Node
     public function __set(string $name, $value): void
     {
         switch ($name) {
+            case 'context':
+                $this->context = $value;
+
+                return;
             case 'outerHtml':
                 $this->info[DomForge::INFO_OUTER] = $value;
 
@@ -131,6 +147,7 @@ class Node
     public function __isset(string $name): bool
     {
         switch ($name) {
+            case 'context':
             case 'outerHtml':
             case 'innerHtml':
             case 'textContent':
@@ -142,18 +159,8 @@ class Node
 
     public function __unset(string $name): void
     {
-        if (array_key_exists($name, $this->attributes)) {
-            $index = array_search($name, array_keys($this->attributes), true);
-
-            unset($this->attributes[$name]);
-
-            if ($index !== false && isset($this->info[DomForge::INFO_SPACE][$index])) {
-                array_splice($this->info[DomForge::INFO_SPACE], $index, 1);
-            }
-
-            if ($index !== false && isset($this->info[DomForge::INFO_QUOTE][$index])) {
-                array_splice($this->info[DomForge::INFO_QUOTE], $index, 1);
-            }
+        if ($name !== 'context') {
+            $this->removeAttribute($name);
         }
     }
 
@@ -163,7 +170,7 @@ class Node
         $this->nodes = [];
         $this->parent = null;
         $this->children = [];
-        $this->context = new \stdClass();
+        unset($this->context);
     }
 
     public function dom(): DomForge
@@ -211,11 +218,7 @@ class Node
             return $this->convertText($this->dom ? $this->dom->restoreNoise($text) : $text);
         }
 
-        if ($this->dom && isset($this->info[DomForge::INFO_BEGIN]) && isset($this->dom->nodes[$this->info[DomForge::INFO_BEGIN]])) {
-            $result = $this->dom->nodes[$this->info[DomForge::INFO_BEGIN]]->makeup();
-        } else {
-            $result = $this->makeup();
-        }
+        $result = $this->makeup();
 
         $result = $this->convertText($result);
 
@@ -260,20 +263,50 @@ class Node
             return '';
         }
 
-        $result = '';
+        $parts = [];
         if ($this->nodes !== null) {
             foreach ($this->nodes as $node) {
                 if ($node->tag === 'p') {
-                    $result = trim($result) . "\n\n";
+                    $this->trimParts($parts);
+                    $parts[] = "\n\n";
                 }
-                $result .= $node->textContent();
+                $parts[] = $node->textContent();
                 if ($node->tag === 'span' && $this->dom) {
-                    $result .= $this->dom->getConfiguration()->getDefaultSpanText();
+                    $parts[] = $this->dom->getConfiguration()->getDefaultSpanText();
                 }
             }
         }
 
-        return $result;
+        return implode('', $parts);
+    }
+
+    /**
+     * @param string[] $parts
+     */
+    protected function trimParts(array &$parts): void
+    {
+        while ($parts) {
+            $last = rtrim(array_pop($parts));
+            if ($last !== '') {
+                $parts[] = $last;
+
+                break;
+            }
+        }
+
+        $start = 0;
+        $count = count($parts);
+        while ($start < $count && ($first = ltrim($parts[$start])) === '') {
+            ++$start;
+        }
+
+        if ($start < $count) {
+            $parts[$start] = $first;
+        }
+
+        if ($start > 0) {
+            $parts = array_slice($parts, $start);
+        }
     }
 
     public function makeup(): string
